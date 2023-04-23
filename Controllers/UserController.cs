@@ -101,6 +101,9 @@ namespace saleapp.Controllers
                 {
             new Claim(ClaimTypes.Name, user.Id),
             new Claim(ClaimTypes.Email, user.Email),
+            new Claim(JwtRegisteredClaimNames.Aud, "your_audience"),
+            new Claim(JwtRegisteredClaimNames.Iss, "your_issuer"),
+
                     // Add additional claims as needed
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),

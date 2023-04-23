@@ -286,7 +286,7 @@ namespace saleapp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CategoryId")
+                    b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedDate")
@@ -501,7 +501,7 @@ namespace saleapp.Migrations
                         .IsRequired();
 
                     b.HasOne("saleapp.Models.Product", "Product")
-                        .WithMany()
+                        .WithMany("OrderDetails")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -513,9 +513,13 @@ namespace saleapp.Migrations
 
             modelBuilder.Entity("saleapp.Models.Product", b =>
                 {
-                    b.HasOne("saleapp.Models.Category", null)
+                    b.HasOne("saleapp.Models.Category", "Category")
                         .WithMany("Products")
-                        .HasForeignKey("CategoryId");
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("saleapp.Models.Shipper", b =>
@@ -533,6 +537,11 @@ namespace saleapp.Migrations
                 });
 
             modelBuilder.Entity("saleapp.Models.Order", b =>
+                {
+                    b.Navigation("OrderDetails");
+                });
+
+            modelBuilder.Entity("saleapp.Models.Product", b =>
                 {
                     b.Navigation("OrderDetails");
                 });

@@ -4,7 +4,7 @@ using saleapp.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
+using saleapp.DTO;
 namespace saleapp.Controllers
 {
     [Route("api/[controller]")]
@@ -71,13 +71,37 @@ namespace saleapp.Controllers
 
         // POST: api/Product
         [HttpPost]
-        public async Task<ActionResult<Product>> PostProduct(Product product)
+        public async Task<IActionResult> CreateProduct([FromForm] ProductCreateDto model)
         {
+            var product = new Product
+            {
+                Name = model.Name,
+                Description = model.Description,
+                Price = model.Price,
+                CategoryId = model.CategoryId
+            };
+
+            // Save the image to the server
+            if (model.ImageFile != null)
+            {
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ImageFile.FileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images", fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.ImageFile.CopyToAsync(stream);
+                }
+
+                product.ImageUrl = fileName;
+            }
+
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+            return Ok(product);
         }
+
+
 
         // DELETE: api/Product/5
         [HttpDelete("{id}")]
