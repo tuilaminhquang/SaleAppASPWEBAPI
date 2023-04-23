@@ -44,9 +44,13 @@
     <None Remove="Microsoft.VisualStudio.Web.CodeGeneration.Design" />
     <None Remove="Microsoft.EntityFrameworkCore.Tools" />
     <None Remove="Microsoft.EntityFrameworkCore.Sqlite" />
+    <None Remove="images\" />
+    <None Remove="images\product\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
     <Folder Include="DTO\" />
+    <Folder Include="images\" />
+    <Folder Include="images\product\" />
   </ItemGroup>
 </Project>

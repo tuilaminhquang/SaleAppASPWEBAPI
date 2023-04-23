@@ -58,7 +58,7 @@ namespace saleapp.Controllers
             if (result.Succeeded)
             {
                 _logger.LogInformation("User created a new account with password.");
-
+                await _userManager.AddToRoleAsync(user, "User");
                 var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token = token }, Request.Scheme);
 
@@ -112,8 +112,35 @@ namespace saleapp.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
-            return Ok(new { token = tokenString, name = user.FirstName +" "+ user.LastName });
+            return Ok(new { access_token = tokenString, name = user.FirstName +" "+ user.LastName });
         }
+
+        [HttpGet]
+        [Authorize]
+        [Route("current-user")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            //var user = await _userManager.GetUserAsync(User);
+            var user = await _userManager.FindByEmailAsync(User.FindFirst(ClaimTypes.Email).Value);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            return Ok(new
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                DateOfBirth = user.DateOfBirth,
+                Roles = roles
+            });
+        }
+
 
 
 

@@ -20,17 +20,57 @@ namespace saleapp.Controllers
 
         // GET: api/Product
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<Product>>> GetProducts(int? pageNumber, int? pageSize, int? CateId, string? search)
         {
-            return await _context.Products.ToListAsync();
+            var products = await _context.Products.ToListAsync();
+            if (CateId != null)
+            {
+                products = products.Where(p => p.CategoryId == CateId).ToList();
+            }
+            if (!string.IsNullOrEmpty(search))
+            {
+                //products = products.Where(p => p.Name.Contains(search)).ToList();
+
+                //insensitive case
+                products = products.Where(p => p.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+
+            }
+
+            if (pageNumber == null || pageSize == null)
+            {
+                products.ForEach(p => p.ImageUrl = "https://localhost:7097/images/product/" + p.ImageUrl);
+                return products;
+            }
+
+            int currentPage = pageNumber.Value;
+            int currentPageSize = pageSize.Value;
+            int totalItems = products.Count();
+
+            var items = products.Skip((currentPage - 1) * currentPageSize).Take(currentPageSize).ToList();
+            // modify imageUrl property for each product
+            items.ForEach(p => p.ImageUrl = "https://localhost:7097/images/product/" + p.ImageUrl);
+
+            return Ok(new
+            {
+                PageNumber = currentPage,
+                PageSize = currentPageSize,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)currentPageSize),
+                Items = items
+            });
         }
+
 
         // GET: api/Product/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
             var product = await _context.Products.FindAsync(id);
+            if (product != null)
+            {
+                product.ImageUrl = "https://localhost:7097/images/product/" + product.ImageUrl;
 
+            }
             if (product == null)
             {
                 return NotFound();
@@ -76,6 +116,7 @@ namespace saleapp.Controllers
             var product = new Product
             {
                 Name = model.Name,
+                Title = model.Title,
                 Description = model.Description,
                 Price = model.Price,
                 CategoryId = model.CategoryId
@@ -85,7 +126,7 @@ namespace saleapp.Controllers
             if (model.ImageFile != null)
             {
                 var fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ImageFile.FileName);
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images", fileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "images/product", fileName);
 
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {

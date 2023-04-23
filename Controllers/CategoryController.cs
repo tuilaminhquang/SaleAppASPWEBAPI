@@ -94,10 +94,6 @@ namespace saleapp.Controllers
         }
 
 
-
-
-        
-
     // DELETE: api/Category/5
     [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
