@@ -26,7 +26,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
-    
 
 var jwtSettings = configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(options =>

@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using saleapp.DTO;
 using Microsoft.AspNetCore.Authorization;
 using System.Data;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
 
 namespace saleapp.Controllers
 {
@@ -15,10 +17,17 @@ namespace saleapp.Controllers
     public class ProductController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<User> _userManager;
 
-        public ProductController(ApplicationDbContext context)
+
+        public ProductController(
+            ApplicationDbContext context,
+            UserManager<User> userManager
+        )
         {
             _context = context;
+            _userManager = userManager;
+
         }
 
         // GET: api/Product
@@ -82,12 +91,19 @@ namespace saleapp.Controllers
         }
 
         [HttpPatch("{id}")]
-        [Authorize(Roles = "Admin")]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> UpdateProduct(int id, [FromForm] ProductPatchDto model)
         {
             var product = await _context.Products.FindAsync(id);
-
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Admin"))
+            {
+                return Forbid();
+            }
+            {
+            }
             if (product == null)
             {
                 return NotFound();
@@ -178,10 +194,16 @@ namespace saleapp.Controllers
 
         // POST: api/Product
         [HttpPost]
-        [Authorize(Roles = "Admin")]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> CreateProduct([FromForm] ProductCreateDto model)
         {
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Admin"))
+            {
+                return Forbid();
+            }
             var product = new Product
             {
                 Name = model.Name,
@@ -215,10 +237,17 @@ namespace saleapp.Controllers
 
         // DELETE: api/Product/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> DeleteProduct(int id)
         {
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+
+            if (!roles.Contains("Admin"))
+            {
+                return Forbid();
+            }
             var product = await _context.Products.FindAsync(id);
             if (product == null)
             {

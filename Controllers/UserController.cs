@@ -71,6 +71,7 @@ namespace saleapp.Controllers
                 _logger.LogInformation("User created a new account with password.");
                 await _userManager.AddToRoleAsync(user, "User");
                 //await _userManager.AddToRolesAsync(user, new[] { "User", "Admin" });
+
                 //await _userManager.AddToRoleAsync(user, "Admin");
                 var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token = token }, Request.Scheme);

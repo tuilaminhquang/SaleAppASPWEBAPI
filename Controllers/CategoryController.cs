@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using saleapp.DTO;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace saleapp.Controllers
 {
@@ -14,10 +16,14 @@ namespace saleapp.Controllers
     public class CategoryController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<User> _userManager;
 
-        public CategoryController(ApplicationDbContext context)
+
+        public CategoryController(ApplicationDbContext context, UserManager<User> userManager
+)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: api/Category
@@ -74,10 +80,16 @@ namespace saleapp.Controllers
 
         // POST: api/Category
         [HttpPost]
-        [Authorize(Roles = "Admin")]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<ActionResult<Category>> CreateCategory(CategoryDTO categoryDto)
         {
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Admin"))
+            {
+                return Forbid();
+            }
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -97,11 +109,17 @@ namespace saleapp.Controllers
 
     // DELETE: api/Category/5
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    [Authorize(Roles = "User")]
+    [Authorize]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var category = await _context.Categories.FindAsync(id);
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Admin"))
+            {
+                return Forbid();
+            }
             if (category == null)
             {
                 return NotFound();
