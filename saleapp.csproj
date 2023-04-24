@@ -46,11 +46,13 @@
     <None Remove="Microsoft.EntityFrameworkCore.Sqlite" />
     <None Remove="images\" />
     <None Remove="images\product\" />
+    <None Remove="images\avatar\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
     <Folder Include="DTO\" />
     <Folder Include="images\" />
     <Folder Include="images\product\" />
+    <Folder Include="images\avatar\" />
   </ItemGroup>
 </Project>

@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using saleapp.DTO;
+using Microsoft.AspNetCore.Authorization;
+using System.Data;
+
 namespace saleapp.Controllers
 {
     [Route("api/[controller]")]
@@ -75,8 +78,72 @@ namespace saleapp.Controllers
             {
                 return NotFound();
             }
-
             return product;
+        }
+
+        [HttpPatch("{id}")]
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> UpdateProduct(int id, [FromForm] ProductPatchDto model)
+        {
+            var product = await _context.Products.FindAsync(id);
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            // Update fields
+            if (model.Name != null)
+            {
+                product.Name = model.Name;
+            }
+            if (model.Title != null)
+            {
+                product.Title = model.Title;
+            }
+            if (model.Description != null)
+            {
+                product.Description = model.Description;
+            }
+            if (model.Price.HasValue)
+            {
+                product.Price = model.Price.Value;
+            }
+            if (model.CategoryId.HasValue)
+            {
+                product.CategoryId = model.CategoryId.Value;
+            }
+
+            // Save the image to the server if provided
+            if (model.ImageFile != null)
+            {
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ImageFile.FileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "images/product", fileName);
+
+                // Delete the old image if it exists
+                if (!string.IsNullOrEmpty(product.ImageUrl))
+                {
+                    var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "images/product", product.ImageUrl);
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+
+                // Save the new image
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.ImageFile.CopyToAsync(stream);
+                }
+
+                product.ImageUrl = fileName;
+            }
+
+            _context.Products.Update(product);
+            await _context.SaveChangesAsync();
+
+            return Ok(product);
         }
 
         // PUT: api/Product/5
@@ -111,6 +178,8 @@ namespace saleapp.Controllers
 
         // POST: api/Product
         [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "User")]
         public async Task<IActionResult> CreateProduct([FromForm] ProductCreateDto model)
         {
             var product = new Product
@@ -146,6 +215,8 @@ namespace saleapp.Controllers
 
         // DELETE: api/Product/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "User")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var product = await _context.Products.FindAsync(id);

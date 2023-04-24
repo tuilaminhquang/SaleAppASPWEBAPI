@@ -26,6 +26,8 @@ namespace saleapp.DTO
         public string LastName { get; set; }
         
         public DateTime? DateOfBirth { get; set; }
+        public IFormFile? Avatar { get; set; }
+
     }
 }
 

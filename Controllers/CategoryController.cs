@@ -74,7 +74,8 @@ namespace saleapp.Controllers
 
         // POST: api/Category
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "User")]
         public async Task<ActionResult<Category>> CreateCategory(CategoryDTO categoryDto)
         {
             if (!ModelState.IsValid)
@@ -96,6 +97,8 @@ namespace saleapp.Controllers
 
     // DELETE: api/Category/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "User")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var category = await _context.Categories.FindAsync(id);
