@@ -3,6 +3,7 @@ namespace saleapp.Models
 {
     public enum StatusEnum
     {
+        WaitingShipper,
         ToReceive,
         Completed
     }
@@ -16,7 +17,8 @@ namespace saleapp.Models
     public class Order: BaseModel
 	{
         public int Id { get; set; }
-        public Customer Customer { get; set; }
+        public User Customer { get; set; }
+        public User? Shipper { get; set; }
         public string ShipAddress { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
