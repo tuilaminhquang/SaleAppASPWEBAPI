@@ -150,6 +150,7 @@ namespace saleapp.Controllers
 
             return Ok(response);
         }
+
         [HttpGet]
         [Authorize]
         [Route("waiting")]
@@ -241,7 +242,7 @@ namespace saleapp.Controllers
             var order = await _context.Orders.Include(o => o.Shipper).FirstOrDefaultAsync(o => o.Id == orderId);
 
             bool is_shipper_of_order = order?.Shipper?.Id == userId;
-            if (!roles.Contains("Admin") && is_shipper_of_order)
+            if (!roles.Contains("Admin") && !is_shipper_of_order)
             {
                 return Forbid();
             }
@@ -260,6 +261,39 @@ namespace saleapp.Controllers
 
             // Return a success response
             return Ok();
+        }
+
+        [HttpPatch("{orderId}/delete")]
+        [Authorize]
+        public async Task<IActionResult> DeleteOrderById(int orderId)
+        {
+            // Find the order by ID
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+
+            if (!roles.Contains("Admin"))
+            {
+                return Forbid();
+            }
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            _context.Orders.Remove(order);
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("admin")]
+        public async Task<ActionResult<IEnumerable<Order>>> GetAllOrder(StatusEnum status)
+        {
+            return await _context.Orders.ToListAsync();
         }
 
 
