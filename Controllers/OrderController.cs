@@ -100,19 +100,34 @@ namespace saleapp.Controllers
         {
             // Get the current user
             var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            List<Order> orders;
 
             // Get all orders where the customer is the current user
             if (userId == null)
             {
                 return NotFound();
             }
-            //Use Include when need load related
-            var orders = await _context.Orders
+            if (roles.Contains("Shipper"))
+            {
+                orders = await _context.Orders
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Product)
-                .Where(o => o.Customer.Id == userId)
+                .Where(o => o.Shipper.Id == userId)
                 .ToListAsync();
+            }
+            else
+            {
+                //Use Include when need load related
+            
+                orders = await _context.Orders
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.Product)
+                    .Where(o => o.Customer.Id == userId)
+                    .ToListAsync();
 
+            }
 
             // Convert the orders to a response
             var response = orders.Select(o => new 
@@ -135,8 +150,55 @@ namespace saleapp.Controllers
 
             return Ok(response);
         }
+        [HttpGet]
+        [Authorize]
+        [Route("waiting")]
+        public async Task<ActionResult<IEnumerable<OrderDTO>>> GetAllWaitingOrder()
+        {
+            // Get the current user
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
 
-        [HttpPatch("orders/{orderId}/pick-up")]
+            if (userId == null)
+            {
+                return NotFound();
+            }
+            if (roles.Contains("Shipper"))
+            {
+                return Forbid();
+            }
+            //Use Include when need load related
+            var orders = await _context.Orders
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .Where(o => o.Status == StatusEnum.WaitingShipper)
+                .ToListAsync();
+
+
+            // Convert the orders to a response
+            var response = orders.Select(o => new
+            {
+                Id = o.Id,
+                ShipAddress = o.ShipAddress,
+                CreatedDate = o.CreatedDate,
+                UpdatedDate = o.UpdatedDate,
+                Status = o.Status.ToString(),
+                PaymentMethod = o.PaymentMethod.ToString(),
+                Products = o.OrderDetails?.Select(od => new
+                {
+                    Id = od.Product?.Id,
+                    ProductName = od.Product?.Name ?? "",
+                    Price = od.Product?.Price,
+                    Quantity = od.Quantity,
+                }).ToList()
+
+            }).ToList();
+
+            return Ok(response);
+        }
+
+        [HttpPatch("{orderId}/pick-up")]
         public async Task<IActionResult> UpdateOrderStatusToReceive(int orderId)
         {
             // Find the order by ID
@@ -167,7 +229,7 @@ namespace saleapp.Controllers
             return Ok();
         }
 
-        [HttpPatch("orders/{orderId}/mark-complete")]
+        [HttpPatch("{orderId}/mark-complete")]
         public async Task<IActionResult> UpdateOrderStatus(int orderId)
         {
             // Find the order by ID
