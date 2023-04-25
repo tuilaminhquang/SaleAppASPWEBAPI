@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using saleapp.Models;
 using saleapp.DTO;
 using Microsoft.AspNetCore.Identity;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace saleapp.Controllers
@@ -291,9 +293,45 @@ namespace saleapp.Controllers
         [HttpGet]
         [Authorize]
         [Route("admin")]
-        public async Task<ActionResult<IEnumerable<Order>>> GetAllOrder(StatusEnum status)
+        public async Task<ActionResult<IEnumerable<OrderDTO>>> GetAllOrder(StatusEnum? status)
         {
-            return await _context.Orders.ToListAsync();
+            var query = _context.Orders.AsQueryable();
+
+            if (status.HasValue)
+            {
+                query = query.Where(o => o.Status == status);
+            }
+
+            var orders = await query
+                .Include(o => o.Shipper)
+                .Include(o => o.Customer)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .ToListAsync();
+
+            // Convert the orders to a response
+            var response = orders.Select(o => new
+            {
+                Id = o.Id,
+                Customer = o.Customer,
+                Shipper = o.Shipper,
+                ShipAddress = o.ShipAddress,
+                CreatedDate = o.CreatedDate,
+                UpdatedDate = o.UpdatedDate,
+                Status = o.Status.ToString(),
+                PaymentMethod = o.PaymentMethod.ToString(),
+                Products = o.OrderDetails?.Select(od => new
+                {
+                    Id = od.Product?.Id,
+                    ProductName = od.Product?.Name ?? "",
+                    Price = od.Product?.Price,
+                    Quantity = od.Quantity,
+                }).ToList()
+
+            }).ToList();
+
+            return Ok(response);
+
         }
 
 
