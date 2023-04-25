@@ -17,26 +17,16 @@ namespace saleapp.Controllers
     public class OrderController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<User> _userManager;
 
 
-        public OrderController(ApplicationDbContext context)
+
+        public OrderController(ApplicationDbContext context, UserManager<User> userManager)
         {
             _context = context;
-
-        }
-        // GET: api/values
-        [HttpGet]
-        public IEnumerable<string> Get()
-        {
-            return new string[] { "value1", "value2" };
+            _userManager = userManager;
         }
 
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return "value";
-        }
 
         [HttpPost]
         [Authorize]
@@ -146,18 +136,69 @@ namespace saleapp.Controllers
             return Ok(response);
         }
 
-
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
+        [HttpPatch("orders/{orderId}/pick-up")]
+        public async Task<IActionResult> UpdateOrderStatusToReceive(int orderId)
         {
+            // Find the order by ID
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            var order = await _context.Orders.Include(o => o.Shipper).FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (!roles.Contains("Admin") | !roles.Contains("Shipper"))
+            {
+                return Forbid();
+            }
+
+            // Check if the order exists
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            // Update the order status to ToCeive when shipper pickup this order
+            order.Status = StatusEnum.ToReceive;
+            order.Shipper = user;
+
+            // Save changes to the database
+            await _context.SaveChangesAsync();
+
+            // Return a success response
+            return Ok();
         }
 
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpPatch("orders/{orderId}/mark-complete")]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId)
         {
+            // Find the order by ID
+            var userId = User.FindFirst(ClaimTypes.Name)?.Value;
+            var user = await _context.Users.FindAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            var order = await _context.Orders.Include(o => o.Shipper).FirstOrDefaultAsync(o => o.Id == orderId);
+
+            bool is_shipper_of_order = order?.Shipper?.Id == userId;
+            if (!roles.Contains("Admin") && is_shipper_of_order)
+            {
+                return Forbid();
+            }
+            
+            // Check if the order exists
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            // Update the order status
+            order.Status = StatusEnum.Completed;
+
+            // Save changes to the database
+            await _context.SaveChangesAsync();
+
+            // Return a success response
+            return Ok();
         }
+
+
     }
 }
 

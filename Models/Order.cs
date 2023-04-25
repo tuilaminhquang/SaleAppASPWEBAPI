@@ -10,7 +10,7 @@ namespace saleapp.Models
 
     public enum PayMentMethod
     {
-        Momo,
+        PAYPAL,
         COD
     }
 

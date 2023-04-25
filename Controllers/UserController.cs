@@ -157,11 +157,59 @@ namespace saleapp.Controllers
             });
         }
 
+        [HttpPost]
+        [Authorize]
+        [Route("register-shipper")]
+        public async Task<IActionResult> RegisterShipper([FromForm] RegisterUserDto registerDto)
+        {
+            var userAdmin = await _userManager.FindByEmailAsync(User.FindFirst(ClaimTypes.Email).Value);
+            var roles = await _userManager.GetRolesAsync(userAdmin);
+            if (!roles.Contains("Admin"))
+            {
+                return Forbid("Only Admin can create shipper");
+            }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var fileName = "";
+            if (registerDto.Avatar != null)
+            {
+                fileName = Guid.NewGuid().ToString() + Path.GetExtension(registerDto.Avatar.FileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "images/avatar", fileName);
 
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await registerDto.Avatar.CopyToAsync(stream);
+                }
 
+            }
+            var user = new User { UserName = registerDto.Email, Email = registerDto.Email, FirstName = registerDto.FirstName, LastName = registerDto.LastName, DateOfBirth = registerDto.DateOfBirth, AvatarUrl = fileName };
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
 
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("User created a new account with password.");
+                await _userManager.AddToRoleAsync(user, "User");
+                //await _userManager.AddToRolesAsync(user, new[] { "User", "Admin" });
 
+                //await _userManager.AddToRoleAsync(user, "Admin");
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token = token }, Request.Scheme);
 
+                // TODO: Send email confirmation link to user
+
+                return Ok(new { message = "User created successfully" });
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                return BadRequest(ModelState);
+            }
+        }
 
     }
 
