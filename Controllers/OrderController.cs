@@ -159,12 +159,12 @@ namespace saleapp.Controllers
             var userId = User.FindFirst(ClaimTypes.Name)?.Value;
             var user = await _context.Users.FindAsync(userId);
             var roles = await _userManager.GetRolesAsync(user);
-
+            bool canAccess = roles.Contains("Shipper") | roles.Contains("Admin");
             if (userId == null)
             {
                 return NotFound();
             }
-            if (roles.Contains("Shipper"))
+            if (!canAccess)
             {
                 return Forbid();
             }
@@ -199,6 +199,7 @@ namespace saleapp.Controllers
         }
 
         [HttpPatch("{orderId}/pick-up")]
+        [Authorize]
         public async Task<IActionResult> UpdateOrderStatusToReceive(int orderId)
         {
             // Find the order by ID
@@ -207,7 +208,7 @@ namespace saleapp.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var order = await _context.Orders.Include(o => o.Shipper).FirstOrDefaultAsync(o => o.Id == orderId);
 
-            if (!roles.Contains("Admin") | !roles.Contains("Shipper"))
+            if (!roles.Contains("Shipper"))
             {
                 return Forbid();
             }
@@ -230,6 +231,7 @@ namespace saleapp.Controllers
         }
 
         [HttpPatch("{orderId}/mark-complete")]
+        [Authorize]
         public async Task<IActionResult> UpdateOrderStatus(int orderId)
         {
             // Find the order by ID

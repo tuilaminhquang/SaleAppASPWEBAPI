@@ -166,7 +166,7 @@ namespace saleapp.Controllers
             var roles = await _userManager.GetRolesAsync(userAdmin);
             if (!roles.Contains("Admin"))
             {
-                return Forbid("Only Admin can create shipper");
+                return Forbid();
             }
             if (!ModelState.IsValid)
             {
@@ -190,9 +190,8 @@ namespace saleapp.Controllers
             if (result.Succeeded)
             {
                 _logger.LogInformation("User created a new account with password.");
-                await _userManager.AddToRoleAsync(user, "User");
+                await _userManager.AddToRoleAsync(user, "Shipper");
                 //await _userManager.AddToRolesAsync(user, new[] { "User", "Admin" });
-
                 //await _userManager.AddToRoleAsync(user, "Admin");
                 var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token = token }, Request.Scheme);
